@@ -7,7 +7,8 @@ import sys
 app = FastAPI()
 
 # 環境変数から APIキーを取得
-API_KEY = "sk_fa71c954bf41f9f60a25cd2fd37347fbf342a2b065a3781a"
+API_KEY = os.getenv("ELEVENLABS_API_KEY")
+#API_KEY = "sk_fa71c954bf41f9f60a25cd2fd37347fbf342a2b065a3781a"
 VOICE_ID = "YyBHEgIAvkDGlHvbSe5A"
 
 @app.get("/", response_class=HTMLResponse)
@@ -53,5 +54,6 @@ def tts(text: str = Query(..., min_length=1)):
 
     # 音声データを直接返す
     return Response(content=response.content, media_type="audio/mpeg")
+
 
 
