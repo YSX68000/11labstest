@@ -1,59 +1,40 @@
-from fastapi import FastAPI, Query
-from fastapi.responses import Response, HTMLResponse
+# streamlit_app.py
+import streamlit as st
 import requests
+import io
+from pathlib import Path
+import base64
 import os
-import sys
 
-app = FastAPI()
-
-# 環境変数から APIキーを取得
-API_KEY = os.getenv("ELEVENLABS_API_KEY")
-#API_KEY = "sk_fa71c954bf41f9f60a25cd2fd37347fbf342a2b065a3781a"
+# --- 環境変数から APIキー取得 ---
+API_KEY = os.getenv("ELEVENLABS_API_KEY")  # Streamlit Secrets でも可
 VOICE_ID = "YyBHEgIAvkDGlHvbSe5A"
 
-@app.get("/", response_class=HTMLResponse)
-def index():
-    return """
-    <!DOCTYPE html>
-    <html lang="ja">
-    <head><meta charset="UTF-8"><title>11Labs TTS</title></head>
-    <body>
-        <h1>11Labs 音声合成</h1>
-        <input type="text" id="text" placeholder="テキストを入力">
-        <button onclick="playTTS()">再生</button>
-        <audio id="audio" controls></audio>
+st.title("11Labs 音声合成 (TTS)")
 
-        <script>
-        async function playTTS() {
-            const text = document.getElementById("text").value;
-            const audio = document.getElementById("audio");
-            audio.src = "/tts?text=" + encodeURIComponent(text);
-            audio.play();
-        }
-        </script>
-    </body>
-    </html>
-    """
+text_input = st.text_area("テキストを入力してください", "こんにちは、11Labsの音声合成APIを試しています！")
 
-@app.get("/tts")
-def tts(text: str = Query(..., min_length=1)):
+if st.button("再生") and text_input.strip():
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}"
     headers = {"xi-api-key": API_KEY, "Content-Type": "application/json"}
     payload = {
-        "text": text,
+        "text": text_input,
         "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}
     }
 
     response = requests.post(url, headers=headers, json=payload)
-    if response.status_code != 200:
-        return Response(
-            content=f"Error from ElevenLabs: {response.text}",
-            media_type="text/plain",
-            status_code=response.status_code
-        )
+    
+    if response.status_code == 200:
+        # 音声データを BytesIO に読み込み
+        audio_bytes = io.BytesIO(response.content)
 
-    # 音声データを直接返す
-    return Response(content=response.content, media_type="audio/mpeg")
-
-
-
+        # HTML5 audio タグで再生するため base64 に変換
+        audio_base64 = base64.b64encode(audio_bytes.read()).decode("utf-8")
+        audio_html = f"""
+        <audio controls autoplay>
+            <source src="data:audio/mpeg;base64,{audio_base64}" type="audio/mpeg">
+        </audio>
+        """
+        st.markdown(audio_html, unsafe_allow_html=True)
+    else:
+        st.error(f"ElevenLabs API エラー: {response.status_code} {response.text}")
