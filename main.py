@@ -2,7 +2,9 @@ from fastapi import FastAPI, Query
 from fastapi.responses import Response, HTMLResponse
 import requests
 import os
+import sys
 
+print("DEBUG API_KEY:", os.getenv("ELEVENLABS_API_KEY"), file=sys.stderr)
 app = FastAPI()
 
 # 環境変数から APIキーを取得
@@ -52,3 +54,4 @@ def tts(text: str = Query(..., min_length=1)):
 
     # 音声データを直接返す
     return Response(content=response.content, media_type="audio/mpeg")
+
