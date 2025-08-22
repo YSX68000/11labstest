@@ -5,6 +5,7 @@ import os
 
 app = FastAPI()
 
+# 環境変数から APIキーを取得
 API_KEY = os.getenv("ELEVENLABS_API_KEY")
 VOICE_ID = "YyBHEgIAvkDGlHvbSe5A"
 
@@ -21,7 +22,7 @@ def index():
         <audio id="audio" controls></audio>
 
         <script>
-        function playTTS() {
+        async function playTTS() {
             const text = document.getElementById("text").value;
             const audio = document.getElementById("audio");
             audio.src = "/tts?text=" + encodeURIComponent(text);
@@ -36,11 +37,18 @@ def index():
 def tts(text: str = Query(..., min_length=1)):
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}"
     headers = {"xi-api-key": API_KEY, "Content-Type": "application/json"}
-    payload = {"text": text, "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}}
+    payload = {
+        "text": text,
+        "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}
+    }
 
-    r = requests.post(url, headers=headers, json=payload)
-    if r.status_code != 200:
-        return Response(content=r.text, media_type="application/json", status_code=r.status_code)
+    response = requests.post(url, headers=headers, json=payload)
+    if response.status_code != 200:
+        return Response(
+            content=f"Error from ElevenLabs: {response.text}",
+            media_type="text/plain",
+            status_code=response.status_code
+        )
 
-    # ここで audio/mpeg を明示
-    return Response(content=r.content, media_type="audio/mpeg")
+    # 音声データを直接返す
+    return Response(content=response.content, media_type="audio/mpeg")
