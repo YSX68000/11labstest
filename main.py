@@ -1,12 +1,10 @@
 from fastapi import FastAPI, Query
-from fastapi.responses import StreamingResponse, HTMLResponse
+from fastapi.responses import Response, HTMLResponse
 import requests
-import io
 import os
 
 app = FastAPI()
 
-# 環境変数から読み込む (セキュリティ対策)
 API_KEY = os.getenv("ELEVENLABS_API_KEY")
 VOICE_ID = "YyBHEgIAvkDGlHvbSe5A"
 
@@ -40,8 +38,9 @@ def tts(text: str = Query(..., min_length=1)):
     headers = {"xi-api-key": API_KEY, "Content-Type": "application/json"}
     payload = {"text": text, "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}}
 
-    response = requests.post(url, headers=headers, json=payload)
-    if response.status_code != 200:
-        return {"error": response.text}
+    r = requests.post(url, headers=headers, json=payload)
+    if r.status_code != 200:
+        return Response(content=r.text, media_type="application/json", status_code=r.status_code)
 
-    return StreamingResponse(io.BytesIO(response.content), media_type="audio/mpeg")
+    # ここで audio/mpeg を明示
+    return Response(content=r.content, media_type="audio/mpeg")
